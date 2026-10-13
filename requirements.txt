@@ -1,0 +1,4 @@
+torch>=2.4
+huggingface_hub
+tokenizers
+# optional: pyarrow (evaluate.py --prepare), triton (NVIDIA GPU kernel)
