@@ -12,8 +12,29 @@ and checked against exact references:
 [evaluate.py](evaluate.py) applies each method to a real model (Qwen2.5-0.5B, loaded into a hand-written
 Llama/Qwen2 in [llama.py](llama.py)) and measures WikiText-2 perplexity with the GPTQ paper's protocol.
 
-> **Status:** all code complete; `check.py` passes. The WikiText-2 perplexity table and a GPU run of the Triton
-> kernel are next and will be added here.
+## Results: Qwen2.5-0.5B on WikiText-2
+
+Test perplexity over 298,938 tokens in non-overlapping 2,048-token windows (lower is better). GPTQ and RTN
+quantize every linear layer's weights with group size 128; GPTQ is calibrated on 32 random 2,048-token windows
+of the training split. M1 Pro (MPS).
+
+| Method | Weight bits | Perplexity | vs. 16-bit | Minutes |
+|---|---|---|---|---|
+| 16-bit (reference) | 16 | **12.98** | | 2.6 |
+| LLM.int8() | 8 | **13.02** | +0.04 | 11.8 |
+| Round-to-nearest | 4 | 15.46 | +2.48 | 2.3 |
+| GPTQ | 4 | **14.00** | +1.02 | 4.7 |
+| Round-to-nearest | 3 | 50.50 | +37.52 | 2.6 |
+| GPTQ | 3 | **19.51** | +6.53 | 4.8 |
+
+- LLM.int8() is within 0.04 of 16-bit: the paper's claim of no degradation holds on this model.
+- At 4 bits GPTQ cuts round-to-nearest's perplexity loss by 59% (2.48 → 1.02); at 3 bits by 83%
+  (37.5 → 6.5), where plain rounding breaks the model and GPTQ keeps it usable.
+- The int8 time is the cost of doing the decomposition in plain PyTorch with no int8 kernel; the paper's
+  speed comes from CUDA kernels this repo does not have.
+
+> **Status:** all code complete; `check.py` passes; the perplexity table above is measured. A GPU run of the
+> Triton kernel is still to do.
 
 ## What the checks prove
 
